@@ -14,13 +14,18 @@
 
         <div class="scrabble-search-card">
             <div class="search-input-group">
-                <input 
-                    type="text" 
-                    id="wordInput" 
-                    class="scrabble-input" 
-                    placeholder="Type a word (3+ letters)..."
-                    autocomplete="off"
-                >
+                <div class="input-wrapper">
+                    <input 
+                        type="text" 
+                        id="wordInput" 
+                        class="scrabble-input" 
+                        placeholder="Type a word (3+ letters)..."
+                        autocomplete="off"
+                    >
+                    <button class="clear-button" id="clearButton" title="Clear">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
                 <div class="input-hint">
                     <i class="fa-solid fa-lightbulb"></i>
                     Start typing to search in real-time
@@ -60,9 +65,9 @@
 
     <style>
         .scrabble-container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 0 1rem;
+            max-width: 1000px;
+            margin: 1rem auto;
+            padding: 0rem;
         }
 
         .scrabble-header {
@@ -74,7 +79,7 @@
             background: white;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            padding: 2rem;
+            padding: 1rem;
             margin-bottom: 2rem;
         }
 
@@ -82,9 +87,14 @@
             margin-bottom: 1.5rem;
         }
 
+        .input-wrapper {
+            position: relative;
+        }
+
         .scrabble-input {
             width: 100%;
-            padding: 0.75rem 1rem;
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
+            padding-right: 2.5rem;
             font-size: 1rem;
             border: 2px solid #e2e8f0;
             border-radius: 8px;
@@ -96,6 +106,31 @@
             outline: none;
             border-color: #4299e1;
             box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .clear-button {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #a0aec0;
+            cursor: pointer;
+            padding: 0.5rem;
+            font-size: 1rem;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s ease;
+        }
+
+        .clear-button:hover {
+            color: #718096;
+        }
+
+        .clear-button.show {
+            display: flex;
         }
 
         .input-hint {
@@ -160,6 +195,91 @@
         .result-valid .status-text {
             color: #276749;
             font-weight: 500;
+        }
+
+        .definition-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(72, 187, 120, 0.2);
+            text-align: left;
+        }
+
+        .word-entry {
+            margin-bottom: 1.25rem;
+        }
+
+        .word-entry:last-child {
+            margin-bottom: 0;
+        }
+
+        .pos-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .expand-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.25rem;
+            height: 1.25rem;
+            flex-shrink: 0;
+            transition: transform 0.2s ease;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+
+        .pos-label {
+            display: inline-block;
+            background: rgba(72, 187, 120, 0.15);
+            color: #22543d;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .definitions-list {
+            margin: 0;
+            padding-left: 1.5rem;
+            list-style: none;
+            max-height: 500px;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .definitions-list.collapsed {
+            max-height: 0;
+        }
+
+        .definition-item {
+            margin-bottom: 0.75rem;
+            color: #22543d;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .definition-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .definition-number {
+            font-weight: 600;
+            color: #276749;
+            min-width: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .definition-text {
+            flex: 1;
         }
 
         .result-invalid {
@@ -258,10 +378,29 @@
     <script>
         // Real-time word search
         const wordInput = document.getElementById('wordInput');
+        const clearButton = document.getElementById('clearButton');
         const resultContainer = document.getElementById('resultContainer');
         let searchTimeout;
 
+        clearButton.addEventListener('click', function() {
+            wordInput.value = '';
+            clearButton.classList.remove('show');
+            resultContainer.innerHTML = `
+                <div class="result-placeholder">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <p>Enter a word to check its validity</p>
+                </div>
+            `;
+            wordInput.focus();
+        });
+
         wordInput.addEventListener('input', function() {
+            // Show/hide clear button based on input content
+            if (this.value.trim()) {
+                clearButton.classList.add('show');
+            } else {
+                clearButton.classList.remove('show');
+            }
             const word = this.value.trim();
 
             // Clear previous timeout
@@ -313,11 +452,45 @@
             let resultHTML = '';
             
             if (data.valid) {
+                let definitionHTML = '';
+                if (data.word_entries && data.word_entries.length > 0) {
+                    const entriesHTML = data.word_entries.map((entry, entryIdx) => {
+                        const defsList = entry.definitions.map((def, idx) => `
+                            <li class="definition-item">
+                                <span class="definition-number">${idx + 1}</span>
+                                <span class="definition-text">${escapeHtml(def)}</span>
+                            </li>
+                        `).join('');
+                        
+                        const entryId = `entry-${entryIdx}`;
+                        return `
+                            <div class="word-entry">
+                                <div class="pos-header" onclick="toggleEntry('${entryId}')">
+                                    <span class="expand-icon" id="${entryId}-icon">
+                                        <i class="fa-solid fa-chevron-right"></i>
+                                    </span>
+                                    <span class="pos-label">${escapeHtml(entry.pos)}</span>
+                                </div>
+                                <ol class="definitions-list collapsed" id="${entryId}">
+                                    ${defsList}
+                                </ol>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    definitionHTML = `
+                        <div class="definition-section">
+                            ${entriesHTML}
+                        </div>
+                    `;
+                }
+                
                 resultHTML = `
                     <div class="result-valid">
                         <i class="fa-solid fa-check-circle"></i>
                         <div class="word-display">${escapeHtml(data.word)}</div>
                         <div class="status-text">✓ Valid Scrabble Word</div>
+                        ${definitionHTML}
                     </div>
                 `;
             } else {
@@ -331,6 +504,16 @@
             }
 
             resultContainer.innerHTML = resultHTML;
+        }
+
+        function toggleEntry(entryId) {
+            const list = document.getElementById(entryId);
+            const icon = document.getElementById(`${entryId}-icon`);
+            
+            if (list && icon) {
+                list.classList.toggle('collapsed');
+                icon.classList.toggle('expanded');
+            }
         }
 
         function escapeHtml(text) {

@@ -6,6 +6,7 @@ app = Flask(__name__)
 
 # Load dictionary cache
 _dictionary_words = None
+_definitions = None
 
 def load_dictionary():
     global _dictionary_words
@@ -17,6 +18,30 @@ def load_dictionary():
         except FileNotFoundError:
             _dictionary_words = set()
     return _dictionary_words
+
+def load_definitions():
+    global _definitions
+    if _definitions is None:
+        def_path = os.path.join(os.path.dirname(__file__), 'dictionary', 'dictionary.json')
+        try:
+            with open(def_path, 'r', encoding='utf-8') as f:
+                definitions_list = json.load(f)
+                _definitions = {}
+                for entry in definitions_list:
+                    word = entry.get('word', '').upper()
+                    definitions = entry.get('definitions', [])
+                    pos = entry.get('pos', '')
+                    if word and definitions:
+                        # Create a list to hold all parts of speech for a word
+                        if word not in _definitions:
+                            _definitions[word] = []
+                        _definitions[word].append({
+                            'pos': pos,
+                            'definitions': definitions
+                        })
+        except (FileNotFoundError, json.JSONDecodeError):
+            _definitions = {}
+    return _definitions
 
 def init_db():
     conn = sqlite3.connect('card_games.db')
@@ -383,11 +408,19 @@ def search_word():
     dictionary = load_dictionary()
     is_valid = word in dictionary
     
-    return jsonify({
+    result = {
         'word': word,
         'valid': is_valid,
         'message': f"'{word}' is {'VALID' if is_valid else 'NOT VALID'} in NWL2023"
-    })
+    }
+    
+    # Add definitions if word is valid
+    if is_valid:
+        definitions = load_definitions()
+        if word in definitions:
+            result['word_entries'] = definitions[word]
+    
+    return jsonify(result)
 
 if __name__ == '__main__':
     app.secret_key = 'your-secret-key-change-this'
