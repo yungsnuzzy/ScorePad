@@ -185,7 +185,7 @@
         .result-valid i {
             color: #48bb78;
             font-size: 2rem;
-            margin-bottom: 0.5rem;
+            margin: 0 auto 0.5rem auto;
             display: block;
         }
 
@@ -319,7 +319,7 @@
         .result-invalid i {
             color: #f56565;
             font-size: 2rem;
-            margin-bottom: 0.5rem;
+            margin: 0 auto 0.5rem auto;
             display: block;
         }
 
@@ -523,7 +523,7 @@
                     <div class="result-valid">
                         <i class="fa-solid fa-check-circle"></i>
                         <div class="word-display">${escapeHtml(data.word)}</div>
-                        <div class="status-text">✓ Valid Scrabble Word</div>
+                        <div class="status-text">Valid Scrabble Word</div>
                         ${definitionHTML}
                     </div>
                 `;
@@ -532,7 +532,7 @@
                     <div class="result-invalid">
                         <i class="fa-solid fa-times-circle"></i>
                         <div class="word-display">${escapeHtml(data.word)}</div>
-                        <div class="status-text">✗ Not a Valid Scrabble Word</div>
+                        <div class="status-text">Not a Valid Scrabble Word</div>
                     </div>
                 `;
             }
